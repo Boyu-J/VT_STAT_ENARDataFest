@@ -26,3 +26,7 @@ Logistic regression model: odds ratio, variable selection (stepwise selection)
 Bayesian network: learn a network structure
 Tree model: feature importance ranking
 
+### Variabless
+BP control: Response
+Hypertension: Identification
+Commodities: Covariates
