@@ -13,3 +13,15 @@ Variable dictionary: https://jhs-hwg.github.io/cardioStatsUSA/reference/nhanes_d
 
 Identify potential causes or correlates of worsening BP control among adults with hypertension over the past decade.
 
+
+## Action item
+
+1. Statistical method
+Logistic regression model: odds ratio, variable selection
+
+
+3. Machine learning method
+
+Bayesian network: learn a network structure
+Tree model: feature importance ranking
+
