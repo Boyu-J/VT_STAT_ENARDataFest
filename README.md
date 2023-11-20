@@ -16,11 +16,12 @@ Identify potential causes or correlates of worsening BP control among adults wit
 
 ## Action item
 
-1. Statistical method
-Logistic regression model: odds ratio, variable selection
+### Statistical method
+
+Logistic regression model: odds ratio, variable selection (stepwise selection)
 
 
-3. Machine learning method
+### Machine learning method
 
 Bayesian network: learn a network structure
 Tree model: feature importance ranking
