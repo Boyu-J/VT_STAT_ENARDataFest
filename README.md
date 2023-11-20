@@ -8,3 +8,8 @@ Variable dictionary: https://jhs-hwg.github.io/cardioStatsUSA/reference/nhanes_d
 
 'cardioStatsUSA' R package GitHub: https://github.com/jhs-hwg/cardioStatsUSA/tree/main
 
+
+## Task
+
+Identify potential causes or correlates of worsening BP control among adults with hypertension over the past decade.
+
