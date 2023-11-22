@@ -24,9 +24,14 @@ Logistic regression model: odds ratio, variable selection (stepwise selection)
 ### Machine learning method
 
 Bayesian network: learn a network structure
+
 Tree model: feature importance ranking
 
-### Variabless
-BP control: Response
+### Selected variables
+
+Response: 'bp_control_escesh_1'
+
 Hypertension: Identification
+
 Commodities: Covariates
+
