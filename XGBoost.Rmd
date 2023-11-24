@@ -1,0 +1,223 @@
+---
+title: "ENAR DataFest"
+author: "Boyu Jiang"
+date: "11/22/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Load data
+
+
+
+```{r}
+library(cardioStatsUSA)
+raw_data <- nhanes_data[svy_subpop_htn == 1]
+
+raw_data_htn <- raw_data[htn_escesh == 'Yes'] # 19377 rows
+
+summary(raw_data_htn$bp_control_escesh_1)
+
+selected_feature <- c('bp_control_escesh_1','demo_race','demo_age_years',"demo_pregnant","demo_gender","cc_smoke","cc_bmi","cc_diabetes","cc_ckd","cc_cvd_mi","cc_cvd_chd","cc_cvd_stroke","cc_cvd_ascvd","cc_cvd_hf","bp_med_n_pills","bp_med_ace","bp_med_aldo","bp_med_alpha","bp_med_angioten", "bp_med_beta","bp_med_central","bp_med_ccb","bp_med_ccb_dh","bp_med_ccb_ndh","bp_med_diur_Ksparing","bp_med_diur_loop", "bp_med_diur_thz","bp_med_renin_inhibitors","bp_med_vasod")
+
+raw_data_htn <- subset(raw_data_htn, select = selected_feature)
+```
+
+
+Read from csv file.
+
+
+```{r}
+library(readr)
+data_dummy_var <- read_csv("data_dummy var.csv")
+```
+
+
+
+Adults with hypertension = 19377
+
+Among these adults, bp_control = 8454; no bp_control = 10923
+
+
+Split the whole dataset into training set (80%) and testing set (20%).
+
+```{r}
+set.seed(7)
+train_indices <- sample(1:nrow(data_dummy_var), round(0.8*nrow(data_dummy_var)))
+
+# y = 'bp_control_escesh_1'
+
+
+train <- data_dummy_var[train_indices, ]
+# train <- subset(train, select = selected_feature)
+train <- as.matrix(train)
+#train_x <- subset(train, select = selected_feature)
+#train_y <- train$
+
+test <- data_dummy_var[-train_indices, ]
+#test <- subset(test, select = selected_feature)
+test <- as.matrix(test)
+#test_x <- subset(test, select = selected_feature)
+#test_y <- test$bp_control_escesh_1
+
+
+```
+
+
+
+# Xgboost
+
+
+Random search and 10-fold cross validation for the best combination of hyperparameters.
+
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, eval=FALSE}
+set.seed(7)
+
+# Import necessary libraries
+library(xgboost)
+library(caret)
+library(magrittr)
+library(dplyr)
+
+# Split data into training and testing sets
+#train_size <- floor(0.8 * nrow(rawdata))
+#train <- rawdata[1:train_size, ]
+#test <- rawdata[(train_size + 1):nrow(rawdata), ]
+
+
+# 
+hyper_grid <- expand.grid(
+  eta = c(.01, .05, .1), 
+  max_depth = c(3, 5, 7),
+  min_child_weight = c(1, 3, 5),
+  subsample = runif(n=2, min = 0, max = 1), 
+  colsample_bytree = runif(n=3, min = 0, max = 1),
+  optimal_trees = 0,               # a place to dump results
+  min_error = 0                     # a place to dump results
+)
+
+print(hyper_grid) # 162 combination of hyperparameters
+```
+
+
+
+```{r echo=FALSE, eval=FALSE}
+# grid search 
+for(i in 1:nrow(hyper_grid)) {
+    # create parameter list
+  params <- list(
+    eta = hyper_grid$eta[i],
+    max_depth = hyper_grid$max_depth[i],
+    min_child_weight = hyper_grid$min_child_weight[i],
+    subsample = hyper_grid$subsample[i],
+    colsample_bytree = hyper_grid$colsample_bytree[i]
+  )
+  # train model
+  xgb.tune <- xgb.cv(
+    params = params,
+    data = train[,-1],
+    label = train[,1],
+    nrounds = 500,
+    nfold = 10,
+    objective = "binary:logistic",  # for regression models
+    verbose = 0,               # silent,
+    early_stopping_rounds = 15, # stop if no improvement for 15 consecutive trees
+    metrics='error'
+    )
+  
+  # add min training error and trees to grid
+  hyper_grid$optimal_trees[i] <- which.min(xgb.tune$evaluation_log$test_error_mean)
+  hyper_grid$min_error[i] <- min(xgb.tune$evaluation_log$test_error_mean)
+}
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, error=FALSE,}
+# train best model
+set.seed(7)
+rawdata <- as.matrix(rawdata)
+train_size <- floor(0.8 * nrow(rawdata))
+# Import necessary libraries
+library(xgboost)
+#library(caret)
+#library(magrittr)
+#library(dplyr)
+
+
+params <- list(
+  eta = 0.05,
+  max_depth = 2,
+  min_child_weight = 5,
+  subsample = 0.65,
+  colsample_bytree = 1
+)
+
+
+xgb.best <- xgboost(
+  params = params,
+  data = rawdata[,-2],
+  label = rawdata[,2],
+  nrounds = 100,
+  objective = "reg:squarederror",
+  verbose = 0
+)
+
+# create importance matrix
+importance_matrix <- xgb.importance(model = xgb.best)
+
+
+# variable importance plot
+# par(mar = c(4, 38, 2, 3))
+# xgb.plot.importance(importance_matrix, top_n = 10, measure = "Gain", xlab = "Gain", main = "Variable Importance")
+
+```
+
+
+
+
+```{r echo=FALSE, fig.cap='Training and validation results of best XGBoost model.'}
+# plot the prediction results
+result_forecast = data.frame(real = y, forecast = predict(xgb.best, rawdata[,-2]))
+
+
+# library(MLmetrics)
+# training error
+#RMSE(y_pred = result_forecast$forecast[1:98], y_true=result_forecast$real[1:98])
+
+
+
+plot(result_forecast$real[1:train_size], col = "black", ylab = 'Person', main = 'Best model on training and validation set')
+lines(result_forecast$forecast[1:train_size], col = "red")
+legend("topleft", legend = c("Best model", "True value"), col = c("red", "black")
+        ,pch=c(NA, 1), lty=c(1, NA)
+       )
+
+```
+
+
+
+```{r echo=FALSE, fig.cap='Testing results of best XGBoost model.'}
+# testing error
+# library(MLmetrics)
+# RMSE(y_pred = result_forecast$forecast[99:123], y_true=result_forecast$real[99:123])
+
+# test results plot
+plot(result_forecast$real[train_size+1:nrow(result_forecast)], col = "black", ylab = 'Person', main = 'Best model on testing set', xlim = c(0,nrow(result_forecast)-train_size))
+lines(result_forecast$forecast[train_size+1:nrow(result_forecast)], col = "red")
+legend("bottomleft", legend = c("Best model", "True value"), col = c("red", "black")
+        ,pch=c(NA, 1), lty=c(1, NA)
+       )
+```
+
+
+
+
+
+
