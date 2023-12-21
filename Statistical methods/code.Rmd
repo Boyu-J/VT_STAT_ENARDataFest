@@ -1,0 +1,74 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(glmnet)
+library(MASS)
+library(data.table)
+```
+
+
+```{r}
+data <- cardioStatsUSA::nhanes_data[svy_subpop_htn == 1]
+data <- data[data$htn_escesh=='Yes',]
+vars <- c("bp_control_escesh_1",'demo_race','demo_age_cat',"demo_pregnant","demo_gender","cc_smoke","cc_bmi","cc_diabetes","cc_ckd","cc_cvd_mi","cc_cvd_chd","cc_cvd_stroke","cc_cvd_ascvd","cc_cvd_hf","bp_med_n_pills",'bp_med_n_class',"bp_med_ace","bp_med_aldo","bp_med_alpha","bp_med_angioten", "bp_med_beta","bp_med_central","bp_med_ccb","bp_med_ccb_dh","bp_med_ccb_ndh","bp_med_diur_Ksparing","bp_med_diur_loop", "bp_med_diur_thz","bp_med_renin_inhibitors","bp_med_vasod")
+mod_data <- data %>% dplyr::select(all_of(vars))
+
+```
+## Lasso Logistic Regression
+```{r}
+# Prepare your data and labels as matrices
+vars <- colnames(mod_data)
+covariates <- setdiff(vars,label)
+x <- as.matrix(mod_data[, ..covariates])
+y <- mod_data[[label]]
+missing_rows <- rowSums(is.na(x)) > 0
+x <- x[!missing_rows, ]
+y <- y[!missing_rows]
+# Perform cross-validation
+cv_fit <- cv.glmnet(x, y, family = "binomial", alpha = 1)
+
+# Access the optimal lambda
+optimal_lambda <- cv_fit$lambda.min
+
+# Fit the model with the optimal lambda
+lasso_model <- glmnet(x, y, family = "binomial", alpha = 1, lambda = optimal_lambda)
+
+# Print the model object
+print(lasso_model)
+
+# Get the coefficients of the model
+coefficients <- coef(lasso_model, s = optimal_lambda)
+print(coefficients)
+```
+
+## Stepwise logistic regression
+```{r}
+mod_data <- na.omit(mod_data)
+fullModel <-  glm(bp_control_escesh_1 ~ ., family = 'binomial', data = mod_data)
+nullModel = glm(bp_control_escesh_1 ~ 1, family = 'binomial', data = mod_data) 
+a <- summary(stepAIC(fullModel, direction = 'both', scope = list(upper = fullModel, lower = nullModel), trace = 0))
+a$coefficients
+```
+
+
+## logistic regression
+```{r}
+selects <- c('bp_med_ace',"bp_med_angioten","bp_med_diur_thz","bp_med_n_pills","cc_bmi","cc_ckd","cc_diabetes","demo_age_cat","bp_control_escesh_1")
+log_data <- mod_data[,..selects]
+log_mod <- glm(log_data$bp_control_escesh_1~., data=log_data,family = 'binomial')
+summary(log_mod)
+a <- log_data$bp_control_escesh_1=='Yes'
+pre <- predict(log_mod,log_data)
+pos <- pre[a];neg <- pre[!a]
+wi = wilcox.test(pos,neg)
+    w = wi$statistic
+    auc_minmax[i]=w/(length(neg)*length(pos))
+exp(coefficients(log_mod))
+exp(confint.default(log_mod))
+```
+
+
+
+
