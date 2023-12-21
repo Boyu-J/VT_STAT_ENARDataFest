@@ -18,20 +18,13 @@ Identify potential causes or correlates of worsening BP control among adults wit
 
 ### Statistical method
 
-Logistic regression model: odds ratio, variable selection (stepwise selection)
+LASSO Logistic regression model: odds ratio
 
+Stepwise regression 
 
 ### Machine learning method
 
-Bayesian network: learn a network structure
+XGBoost
 
-Tree model: feature importance ranking
 
-### Selected variables
-
-Response: 'bp_control_escesh_1'
-
-Hypertension: Identification
-
-Commodities: Covariates
 
