@@ -22,6 +22,8 @@ LASSO Logistic regression model
 
 Stepwise regression 
 
+Chi-squared test
+
 ### Machine learning method
 
 XGBoost
