@@ -14,11 +14,11 @@
 Identify potential causes or correlates of worsening BP control among adults with hypertension over the past decade.
 
 
-## Action item
+## Proposed methodology
 
 ### Statistical method
 
-LASSO Logistic regression model: odds ratio
+LASSO Logistic regression model
 
 Stepwise regression 
 
